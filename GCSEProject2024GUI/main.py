@@ -7,12 +7,14 @@ from typing import Callable
 
 import CTkMessagebox
 import customtkinter as ctk
+from CTkListbox import *
 
 chocflav = [
     "Caramel Twist", "Orange Crush", "Chocolate Bar", "Brazil Nut in Chocolate", "Cornish Fudge", "Strawberry Treat",
     "Orange Smoothie", "Toffee Bar", "Hazelnut Triangle", "Coconut Dream"
 ]
-customersList = ["test"]
+customersList = [[]]
+customersListCMB = []
 
 
 class Main(ctk.CTk):
@@ -29,7 +31,7 @@ class Main(ctk.CTk):
         self._container.grid_columnconfigure(0, weight=1)
 
         self._frames: dict[type, ctk.CTkFrame] = {}
-        for F in (MainPage, OrderCreatorPage, CustomerCreatorPage):
+        for F in (MainPage, OrderCreatorPage, CustomerCreatorPage, FindDisplayPage):
             frame = F(self._container, self)
             self._frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -53,34 +55,46 @@ class MainPage(ctk.CTkFrame):
         self.BTNcustcreator = ctk.CTkButton(self, text="Customer Creator",
                                             command=lambda: controller.show_frame(CustomerCreatorPage))
         self.BTNcustcreator.grid(row=2, column=1, pady=5)
+        self.BTNfinddisplay = ctk.CTkButton(self, text="Find Customer & Display Orders",
+                                            command=lambda: controller.show_frame(FindDisplayPage))
+        self.BTNfinddisplay.grid(row=3, column=1, pady=5)
 
 
 class OrderCreatorPage(ctk.CTkFrame):
+
     def __init__(self, parent, controller):
         ctk.CTkFrame.__init__(self, parent)
-
         self.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="a")
-        lastordid = 0
         msgcharge = "1.00"
         totalcharge = "20.00"
         self.label = ctk.CTkLabel(self, text="GCSE Project 2024", font=("Courier", 36))
         self.label.grid(column=1, row=0, columnspan=2, padx=10, pady=10)
         self.LBLid = ctk.CTkLabel(self, text="Order ID:", font=("Courier", 16))
         self.LBLid.grid(row=1, column=1, padx=(0, 5), pady=5, sticky="e")
-        self.ENTid = ctk.CTkEntry(self, placeholder_text=str(lastordid + 1))
+        self.ENTid = ctk.CTkEntry(self)
+        with open("lastOrderID.txt", "r") as r:
+            self.ENTid.insert(0, int(r.read()) + 1)
         self.ENTid.configure(state="disabled")
         self.ENTid.grid(row=1, column=2, padx=(5, 0), pady=5, sticky="ew")
         self.LBLcustomer = ctk.CTkLabel(self, text="Customer:", font=("Courier", 16))
         self.LBLcustomer.grid(row=2, column=1, padx=(0, 5), pady=5, sticky="e")
-        self.CMBcustomer = ctk.CTkComboBox(self, values=customersList, font=("Courier", 16))
+        for rowa in customersList:
+            if "CustomerID" in rowa:
+                continue
+            print(rowa)
+            customersListCMB.append(f"{rowa[0]}: {rowa[1]} {rowa[2]}")
+            print(customersListCMB)
+        self.CMBcustomer = ctk.CTkComboBox(self, values=customersListCMB, font=("Courier", 16))
         self.CMBcustomer.grid(row=2, column=2, padx=(5, 0), pady=5, sticky="ew")
+        self.BTNcmbrefresh = ctk.CTkButton(self, text="Refresh", font=("Courier", 16), command=lambda: self.CMBcustomer.configure(values=customersListCMB))
+        self.BTNcmbrefresh.grid(row=2, column=3, padx=(5, 0), pady=5, sticky="w")
         self.BTNcustomer = ctk.CTkButton(
             self,
             text="New Customer",
             font=("Courier", 16),
             command=lambda: controller.show_frame(CustomerCreatorPage),
         )
-        self.BTNcustomer.grid(row=2, column=3, padx=(5, 0), pady=5, sticky="w")
+        self.BTNcustomer.grid(row=1, column=3, padx=(5, 0), pady=5, sticky="w")
         self.LBLSflavs = []
         self.SBXSflavs = []
         i = 0
@@ -99,6 +113,8 @@ class OrderCreatorPage(ctk.CTkFrame):
         self.LBLmessage.grid(row=4, column=1, padx=(0, 5), pady=5, sticky="en")
         self.TBXmessage = ctk.CTkTextbox(self, height=50)
         self.TBXmessage.grid(row=4, column=2, padx=(5, 0), pady=5, sticky="ew")
+        self.BTNcalcmessage = ctk.CTkButton(self, text="Calculate Message Charge", font=("Courier", 16), command=self.messageCalculate)
+        self.BTNcalcmessage.grid(row=4, column=3, padx=(5, 0), pady=5, sticky="w")
         self.LBLmessagecharge = ctk.CTkLabel(self, text=f"Message Charge: £{msgcharge}", font=("Courier", 24))
         self.LBLmessagecharge.grid(row=5, column=1, columnspan=2, pady=(5, 0), sticky="ew")
         self.LBLtotalcharge = ctk.CTkLabel(self, text=f"Total Charge: £{totalcharge}", font=("Courier", 32))
@@ -106,6 +122,13 @@ class OrderCreatorPage(ctk.CTkFrame):
         self.BTNsave = ctk.CTkButton(self, text="Save", font=("Courier", 16))
         self.BTNsave.grid(row=7, column=1, columnspan=2)
 
+    def messageCalculate(self):
+        textlength = len(self.TBXmessage.get("1.0", "end-1c"))
+        price = textlength*0.10
+        self.LBLmessagecharge.configure(text=f"Message Charge: £{'{:.2f}'.format(price)}")
+
+    def AddOrder(self):
+        return
 
 class CustomerCreatorPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
@@ -117,7 +140,7 @@ class CustomerCreatorPage(ctk.CTkFrame):
         self.LBLid.grid(row=1, column=1, padx=(0, 5), pady=5, sticky="e")
         self.ENTid = ctk.CTkEntry(self)
         with open("lastCustomerID.txt", "r") as r:
-            self.ENTid.insert(0, int(r.read())+1)
+            self.ENTid.insert(0, int(r.read()) + 1)
         self.ENTid.configure(state="disabled")
         self.ENTid.grid(row=1, column=2, padx=(5, 0), pady=5, sticky="ew")
         self.LBLfname = ctk.CTkLabel(self, text="First Name:")
@@ -164,18 +187,42 @@ class CustomerCreatorPage(ctk.CTkFrame):
                 customerWriter.writerow(customerData)
             with open("lastCustomerID.txt", "r") as r:
                 self.ENTid.configure(state="normal")
-                self.ENTid.delete(0,len(self.ENTid.get())-1)
+                self.ENTid.delete(0, len(self.ENTid.get()) - 1)
                 self.ENTid.insert(0, int(r.read()) + 1)
                 self.ENTid.configure(state="disabled")
-                self.ENTfname.delete(0,len(self.ENTfname.get())-1)
-                self.ENTlname.delete(0,len(self.ENTlname.get())-1)
+                self.ENTfname.delete(0, len(self.ENTfname.get()) - 1)
+                self.ENTlname.delete(0, len(self.ENTlname.get()) - 1)
                 for i in range(4):
-                    self.ENTSaddress[i].delete(0,len(self.ENTSaddress[i].get())-1)
-                self.ENTphonenumber.delete(2,len(self.ENTphonenumber.get())-1)
+                    self.ENTSaddress[i].delete(0, len(self.ENTSaddress[i].get()) - 1)
+                self.ENTphonenumber.delete(2, len(self.ENTphonenumber.get()) - 1)
 
             controller.show_frame(MainPage)
+            customersList.clear()
+            with open("CustomerData.csv", "r") as customerFileb:
+                customerRead = csv.reader(customerFileb, delimiter=",")
+                for rowb in customerRead:
+                    customersList.append(rowb)
         else:
             CTkMessagebox.CTkMessagebox(title="Error!", message="Phone Number is incorrect", icon="cancel")
+
+
+class FindDisplayPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        ctk.CTkFrame.__init__(self, parent)
+        self.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="a")
+        self.label = ctk.CTkLabel(self, text="Find Customer & Display Orders", font=("Courier", 36))
+        self.label.grid(column=1, row=0, columnspan=2, padx=10, pady=10)
+        self.LBXcustomers = CTkListbox(self)
+        self.LBXcustomers.grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="nsew")
+        self.fillListBox()
+
+    def fillListBox(self):
+        with open("CustomerData.csv", "r") as customerFile:
+            customerReader = csv.reader(customerFile, delimiter=",")
+            for row in customerReader:
+                if "CustomerID" in row:
+                    continue
+                self.LBXcustomers.insert("end", f"{row[0]}: {row[1]} {row[2]}")
 
 
 class Spinbox(ctk.CTkFrame):
@@ -274,5 +321,14 @@ if __name__ == "__main__":
     if not os.path.isfile("lastCustomerID.txt"):
         with open("lastCustomerID.txt", "w", newline='') as a:
             a.write("0")
+    if not os.path.isfile("lastOrderID.txt"):
+        with open("lastOrderID.txt", "w", newline='') as a:
+            a.write("0")
+    with open("CustomerData.csv", "r") as customerFilea:
+        customerReader = csv.reader(customerFilea, delimiter=",")
+        customersList.clear()
+        for row in customerReader:
+            customersList.append(row)
+
     root = Main()
     root.mainloop()
