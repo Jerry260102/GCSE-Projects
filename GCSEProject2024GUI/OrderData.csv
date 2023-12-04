@@ -1,1 +1,2 @@
-OrderID,CustomerID,CaramelTwist,OrangeCrush,ChcolateBar,BrazilNutinChocolate,CornishFudge,StrawberryTreat,OrangeSmoothie,ToffeeBar,HazelnutTriangle,CoconutDream,Message
+OrderID,CustomerID,CaramelTwist,OrangeCrush,ChcolateBar,BrazilNutinChocolate,CornishFudge,StrawberryTreat,OrangeSmoothie,ToffeeBar,HazelnutTriangle,CoconutDream,Message,MessagePrice,TotalPrice,OrderDate
+1,1,200,300,300,200,0,0,0,0,0,0,adadwa,£0.60,£15.58,29/11/2023

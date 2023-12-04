@@ -3,15 +3,18 @@
 import csv
 import os.path
 import string
+import time
 from datetime import datetime
+from decimal import Decimal
 from typing import Union
 from typing import Callable
 
 import CTkMessagebox
 import customtkinter as ctk
 from CTkListbox import *
-from InvoiceGenerator.api import Invoice, Item, Client, Provider, Creator
-tempcust=""
+from CTkTable import CTkTable
+import pyscreeze
+
 chocflav = [
     "Caramel Twist", "Orange Crush", "Chocolate Bar", "Brazil Nut in Chocolate", "Cornish Fudge", "Strawberry Treat",
     "Orange Smoothie", "Toffee Bar", "Hazelnut Triangle", "Coconut Dream"
@@ -66,7 +69,7 @@ class MainPage(ctk.CTkFrame):
         self.BTNcustcreator.grid(row=2, column=1, pady=5)
         self.BTNfinddisplay = ctk.CTkButton(self, text="Find Customer & Display Orders",
                                             command=lambda: controller.show_frame(FindDisplayPage))
-        self.BTNfinddisplay.grid(row=3, column=1, pady=5)
+        self.BTNfinddisplay.grid(row=4, column=1, pady=5)
 
 
 # Order Creator Page
@@ -98,7 +101,7 @@ class OrderCreatorPage(ctk.CTkFrame):
             print(customersListCMB)
         self.CMBcustomer = ctk.CTkComboBox(self, values=customersListCMB, font=("Courier", 16))
         self.CMBcustomer.grid(row=2, column=2, padx=(5, 0), pady=5, sticky="ew")
-        # Buttonto refresh the combo box
+        # Button to refresh the combo box
         self.BTNcmbrefresh = ctk.CTkButton(self, text="Refresh", font=("Courier", 16),
                                            command=lambda: self.CMBcustomer.configure(values=customersListCMB))
         self.BTNcmbrefresh.grid(row=2, column=3, padx=(5, 0), pady=5, sticky="w")
@@ -170,8 +173,8 @@ class OrderCreatorPage(ctk.CTkFrame):
         for i in range(10):
             OrderData.append(self.SBXSflavs[i].get())
         OrderData.append(self.TBXmessage.get("1.0", "end-1c"))
-        OrderData.append(self.LBLmessagecharge.cget("text")[:self.LBLmessagecharge.cget("text").index("£")])
-        OrderData.append(self.LBLtotalcharge.cget("text")[:self.LBLmessagecharge.cget("text").index("£")])
+        OrderData.append(self.LBLmessagecharge.cget("text")[self.LBLmessagecharge.cget("text").index("£"):])
+        OrderData.append(self.LBLtotalcharge.cget("text")[self.LBLtotalcharge.cget("text").index("£"):])
         OrderData.append(datetime.now().strftime("%d/%m/%Y"))
         with open("OrderData.csv", "a", newline='') as orderFile:
             orderWritera = csv.writer(orderFile, delimiter=",")
@@ -266,42 +269,48 @@ class CustomerCreatorPage(ctk.CTkFrame):
         else:
             CTkMessagebox.CTkMessagebox(title="Error!", message="Phone Number is incorrect", icon="cancel")
 
-
 class FindDisplayPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
+        self.controller = controller
         ctk.CTkFrame.__init__(self, parent)
         self.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="a")
         self.label = ctk.CTkLabel(self, text="Find Customer & Display Orders", font=("Courier", 36))
         self.label.grid(column=1, row=0, columnspan=2, padx=10, pady=10)
         self.LBXcustomers = CTkListbox(self)
         self.LBXcustomers.grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="nsew")
-        self.fillListBox()
-        self.BTNshoworders = ctk.CTkButton(self, text="Show Orders", command=lambda: self.showOrders(controller))
-        self.BTNshoworders.grid(row=2, column=2, padx=10, pady=10, sticky="nsew")
+        self.BTNrefLB = ctk.CTkButton(self, text="Refresh List", command=self.fillListBox)
+        self.BTNrefLB.grid(row=2, column=2, padx=10, pady=10, sticky="nsew")
+        self.BTNshoworders = ctk.CTkButton(self, text="Show Orders", command=self.showOrders)
+        self.BTNshoworders.grid(row=3, column=1, columnspan=2, padx=10, pady=10, sticky="ns")
         self.BTNback = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame(MainPage))
         self.BTNback.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
     def fillListBox(self):
         with open("CustomerData.csv", "r") as customerFile:
-            customerReader = csv.reader(customerFile, delimiter=",")
-            for row in customerReader:
-                if "CustomerID" in row:
+            customerReadera = csv.reader(customerFile, delimiter=",")
+            for rowz in customerReadera:
+                if "CustomerID" in rowz:
                     continue
-                self.LBXcustomers.insert("end", f"{row[0]}: {row[1]} {row[2]}")
+                self.LBXcustomers.insert("end", f"{rowz[0]}: {rowz[1]} {rowz[2]}")
 
-    def showOrders(self, controller):
+    def showOrders(self):
         if self.LBXcustomers.get() == "":
             CTkMessagebox.CTkMessagebox(title="Error!", message="Please select a customer", icon="cancel")
             return
         with open("OrderData.csv", "r") as orderFile:
             orderReader = csv.reader(orderFile, delimiter=",")
-            for row in orderReader:
-                if "OrderID" in row:
+            lbxcustcolonindex = str(self.LBXcustomers.get()).index(":")
+            print(lbxcustcolonindex)
+            for rowa in orderReader:
+                print(rowa)
+                if "OrderID" in rowa:
                     continue
-                if row[1] == self.LBXcustomers.get[:self.LBXcustomers.get().index(":")]:
+                if rowa[1] == self.LBXcustomers.get()[:lbxcustcolonindex]:
                     global tempcust
-                    tempcust=row[1]
-                    controller.show_frame(OrderDisplayPage)
+                    tempcust = rowa[1]
+                    print(rowa[1])
+                    self.controller.show_frame(OrderDisplayPage)
+
 
 class OrderDisplayPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
@@ -311,42 +320,99 @@ class OrderDisplayPage(ctk.CTkFrame):
         self.label.grid(column=1, row=0, columnspan=2, padx=10, pady=10)
         self.LBXorders = CTkListbox(self)
         self.LBXorders.grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="nsew")
-        self.fillListBox()
+        self.BTNrefLB = ctk.CTkButton(self, text="Refresh List", command=self.fillListBox)
+        self.BTNrefLB.grid(row=2, column=2, padx=10, pady=10, sticky="nsew")
         self.BTNshowdetails = ctk.CTkButton(self, text="Show Details", command=self.showDetails)
+        self.BTNshowdetails.grid(row=3, column=1, columnspan=2, padx=10, pady=10, sticky="ns")
         self.BTNback = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame(FindDisplayPage))
         self.BTNback.grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
 
     def fillListBox(self):
         with open("OrderData.csv", "r") as orderFile:
             orderReader = csv.reader(orderFile, delimiter=",")
-            for row in orderReader:
-                if "OrderID" in row:
+            global tempcust
+            for rowb in orderReader:
+                if "OrderID" in rowb:
                     continue
-                if row[1] == tempcust:
-                    self.LBXorders.insert("end", f"{row[0]}: {row[15]}")
+                print(f"rowb = {rowb[1]}")
+                print(f"tempcust = {tempcust}")
+                if rowb[1] == tempcust:
+                    self.LBXorders.insert("end", f"{rowb[0]}: {rowb[15]}")
+                    print("inserted")
 
     def showDetails(self):
-        if self.LBXorders.get("active") == "":
+        if self.LBXorders.get() == "":
             CTkMessagebox.CTkMessagebox(title="Error!", message="Please select an order", icon="cancel")
             return
         with open("OrderData.csv", "r") as orderFile:
             orderReader = csv.reader(orderFile, delimiter=",")
-            for row in orderReader:
-                if "OrderID" in row:
+            for rowa in orderReader:
+                if "OrderID" in rowa:
                     continue
-                if row[0] == self.LBXorders.get()[:self.LBXorders.get().index(":")]:
-                    msg = CTkMessagebox.CTkMessagebox(title=f"Order {row[0]}",
-                                                message=f"Customer ID: {row[1]}\nCaramel Twist: {row[2]}\nOrange Crush: {row[3]}\nChocolate Bar: {row[4]}\nBrazil Nut in Chocolate: {row[5]}\nCornish Fudge: {row[6]}\nStrawberry Treat: {row[7]}\nOrange Smoothie: {row[8]}\nToffee Bar: {row[9]}\nHazelnut Triangle: {row[10]}\nCoconut Dream: {row[11]}\nMessage: {row[12]}\nMessage Price: {row[13]}\nTotal Price: {row[14]}\nOrder Date: {row[15]}",
-                                                icon="info", option_1="Generate Invoice", option_2="Back")
+                if rowa[0] == self.LBXorders.get()[:self.LBXorders.get().index(":")]:
+                    msg = CTkMessagebox.CTkMessagebox(title=f"Order {rowa[0]}",
+                                                      message=f"Customer ID: {rowa[1]}\nCaramel Twist: {rowa[2]}\nOrange Crush: {rowa[3]}\nChocolate Bar: {rowa[4]}\nBrazil Nut in Chocolate: {rowa[5]}\nCornish Fudge: {rowa[6]}\nStrawberry Treat: {rowa[7]}\nOrange Smoothie: {rowa[8]}\nToffee Bar: {rowa[9]}\nHazelnut Triangle: {rowa[10]}\nCoconut Dream: {rowa[11]}\nMessage: {rowa[12]}\nMessage Price: {rowa[13]}\nTotal Price: {rowa[14]}\nOrder Date: {rowa[15]}",
+                                                      icon="info", option_1="Generate Invoice", option_2="Back")
                     response = msg.get()
                     if response == "Generate Invoice":
-                        self.generateInvoice(row)
+                        self.generateInvoice(rowa)
                     elif response == "Back":
                         return
 
+    def generateInvoice(self, rowa):
+        self.newWindowa = ctk.CTkToplevel(self, fg_color="white")
+        self.newWindowa.title(f"Invoice for Order {rowa[0]}")
+        self.newWindowa.geometry("800x800")
+        self.newWindowa.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="a")
+        self.newWindowa.LBLtitle = ctk.CTkLabel(self.newWindowa, text="Park Vale Chocolates", text_color="black", font=("Courier", 36))
+        self.newWindowa.LBLtitle.grid(row=0, column=0, columnspan=4, padx=10, pady=10)
+        self.newWindowa.LBLorder = ctk.CTkLabel(self.newWindowa, text=f"Order {rowa[0]}", text_color="black", font=("Courier", 24))
+        self.newWindowa.LBLorder.grid(row=1, column=0, columnspan=4, padx=10, pady=10)
+        self.newWindowa.LBLcustomer = ctk.CTkLabel(self.newWindowa, text=f"Customer ID: {rowa[1]}", text_color="black",
+                                                    font=("Courier", 16))
+        self.newWindowa.LBLcustomer.grid(row=2, column=0, columnspan=4, padx=10, pady=10)
+        for row in customersList:
+            if row[0] == rowa[1]:
+                self.newWindowa.LBLcustomername = ctk.CTkLabel(self.newWindowa, text=f"Customer Name: {row[1]} {row[2]}", text_color="black",
+                                                                font=("Courier", 16))
+                self.newWindowa.LBLcustomername.grid(row=3, column=0, columnspan=4, padx=10, pady=10)
+                self.newWindowa.LBLcustomeraddress = ctk.CTkLabel(self.newWindowa,
+                                                                    text=f"Customer Address: {row[3]}, {row[4]}, {row[5]}, {row[6]}", text_color="black",
+                                                                    font=("Courier", 16))
+                self.newWindowa.LBLcustomeraddress.grid(row=4, column=0, columnspan=4, padx=10, pady=10)
+                self.newWindowa.LBLcustomerphone = ctk.CTkLabel(self.newWindowa, text=f"Customer Phone: {row[7]}", text_color="black",
+                                                                font=("Courier", 16))
+                self.newWindowa.LBLcustomerphone.grid(row=5, column=0, columnspan=4, padx=10, pady=10)
+            self.Invoicetable = [
+                ["Item Name", "Quantity", "Price"],
+                ["Caramel Twist", rowa[2], ""],
+                ["Orange Crush", rowa[3], ""],
+                ["Chocolate Bar", rowa[4], ""],
+                ["Brazil Nut in Chocolate", rowa[5], ""],
+                ["Cornish Fudge", rowa[6], ""],
+                ["Strawberry Treat", rowa[7], ""],
+                ["Orange Smoothie", rowa[8], ""],
+                ["Toffee Bar", rowa[9], ""],
+                ["Hazelnut Triangle", rowa[10], ""],
+                ["Coconut Dream", rowa[11], ""],
+                ["Message", f"{len(rowa[12])} Letter(s)", rowa[13]],
+                ["", "Total", rowa[14]]
+            ]
+            self.table = CTkTable(master=self.newWindowa, row=13, column=3, border_color="black", border_width=1, corner_radius=0, colors=["white", "white"],  text_color="black", values=self.Invoicetable)
+            self.table.grid(row=6, column=0, columnspan=4, padx=10, pady=10)
+            self.BTNinvsave = ctk.CTkButton(self.newWindowa, text="Save", font=("Courier", 16), command=lambda: self.saveInvoice(rowa[0]))
+            self.BTNinvsave.grid(row=7, column=2, padx=10, pady=10, sticky="nsew")
+            self.BTNinvback = ctk.CTkButton(self.newWindowa, text="Back", font=("Courier", 16),
+                                            command=lambda: self.newWindowa.destroy())
+            self.BTNinvback.grid(row=7, column=1, padx=10, pady=10, sticky="nsew")
 
-    def generateInvoice(self, row):
-        return
+    def saveInvoice(self, invID):
+        x, y = self.newWindowa.winfo_rootx(), self.newWindowa.winfo_rooty()
+        w, h = self.newWindowa.winfo_width(), self.newWindowa.winfo_height()-120
+        pyscreeze.screenshot(f"invoice{invID}.png", region=(x, y, w, h))
+        CTkMessagebox.CTkMessagebox(title="Success!", message="Invoice saved successfully", icon="info")
+
+
 class Spinbox(ctk.CTkFrame):
     def __init__(self, *args,
                  width: int = 100,
@@ -427,6 +493,7 @@ class Spinbox(ctk.CTkFrame):
 
 
 if __name__ == "__main__":
+    tempcust = ""
     if not os.path.isfile("OrderData.csv"):
         with open("OrderData.csv", "w", newline='') as a:
             orderWriter = csv.writer(a, delimiter=",")
@@ -445,6 +512,9 @@ if __name__ == "__main__":
             a.write("0")
     if not os.path.isfile("lastOrderID.txt"):
         with open("lastOrderID.txt", "w", newline='') as a:
+            a.write("0")
+    if not os.path.isfile("lastInvoiceNo.txt"):
+        with open("lastInvoiceNo.txt", "w", newline='') as a:
             a.write("0")
     with open("CustomerData.csv", "r") as customerFilea:
         customerReader = csv.reader(customerFilea, delimiter=",")
